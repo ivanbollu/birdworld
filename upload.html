@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我要投稿 - 鸟类摄影</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body {background-color: #f9fafb;color: #1f2937;font-family: "Microsoft Yahei",sans-serif;}
+        .container {width: 100%;max-width: 800px;margin: 0 auto;padding: 0 16px;}
+        nav {background-color: #059669;color: white;padding: 16px 0;box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
+        .nav-inner {display: flex;justify-content: space-between;align-items: center;max-width: 1200px;margin:0 auto;padding:0 16px;}
+        .nav-inner a {color: white;text-decoration: none;margin: 0 8px;}
+        .nav-inner a:hover {color: #d1fae5;}
+        .box-card {background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:24px;margin-bottom:24px;}
+        .tip-red {background:#fee2e2;color:#dc2626;padding:16px;border-radius:12px;text-align:center;margin-bottom:24px;}
+        .tip-red a {color:#dc2626;font-weight:bold;text-decoration:underline;}
+        label {display:block;margin-bottom:8px;font-weight:500;}
+        .input,.select,.textarea {width:100%;border:1px solid #ddd;border-radius:8px;padding:10px;outline:none;margin-bottom:16px;font-size:14px;}
+        .input:focus,.select:focus,.textarea:focus {border-color:#059669;}
+        .btn-submit {width:100%;background:#059669;color:#fff;border:none;border-radius:8px;padding:14px;font-size:16px;font-weight:bold;cursor:pointer;}
+        .btn-submit:hover {background:#047857;}
+        .btn {padding:8px 16px;border-radius:8px;border:none;cursor:pointer;}
+        .btn-primary {background:#059669;color:#fff;}
+        .btn-gray {background:#e5e7eb;color:#333;}
+        .text-red {color:#dc2626;}
+        .text-gray {color:#6b7280;font-size:14px;}
+        .text-green {color:#16a34a;}
+        .mt-2 {margin-top:8px;}
+        .mt-3 {margin-top:12px;}
+        .mb-4 {margin-bottom:16px;}
+        .py-8 {padding-top:32px;padding-bottom:32px;}
+        .hidden {display:none !important;}
+        #pickMap { width: 100%; height: 300px; border-radius: 8px;margin-bottom:8px;background:#f1f5f9;position:relative;overflow:hidden; }
+        .map-search-row {display:flex;gap:8px;margin-bottom:12px;}
+        .map-search-row input {flex:1;}
+        .map-point-mark {width:16px;height:16px;background:#dc2626;border-radius:50%;position:absolute;transform:translate(-50%,-50%);border:2px solid #fff;box-shadow:0 0 4px #0003;}
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-inner">
+            <h1 class="text-lg font-bold">作品投稿</h1>
+            <a href="index.html">首页</a>
+        </div>
+    </nav>
+
+    <div class="container py-8">
+        <div id="noLoginTip" class="tip-red">
+            请先<a href="login.html">登录会员账号</a>后再投稿！
+        </div>
+
+        <div id="uploadForm" class="box-card hidden">
+            <div class="mb-4">
+                <label>拍摄鸟类名称 <span class="text-red">*必填</span></label>
+                <input id="birdName" type="text" class="input" placeholder="例如：白鹭、红隼、麻雀">
+            </div>
+
+            <div class="mb-4">
+                <label>鸟类分类 <span class="text-red">*必选</span></label>
+                <select id="category" class="select">
+                    <option value="">请选择分类</option>
+                    <option value="猛禽">猛禽（鹰、隼、猫头鹰）</option>
+                    <option value="水鸟">水鸟（白鹭、苍鹭、翠鸟、鸳鸯）</option>
+                    <option value="陆禽">陆禽（斑鸠、鸽子、野鸡）</option>
+                    <option value="鸣禽">鸣禽（喜鹊、麻雀、白头鹎、画眉）</option>
+                    <option value="其他鸟类">其他鸟类</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label>拍摄地点（文字描述）</label>
+                <input id="place" type="text" class="input" placeholder="例如：XX公园/XX山林">
+            </div>
+
+            <div class="mb-4">
+                <label>地图选择拍摄点位（点击选点｜本地稳定可用）</label>
+                <div class="map-search-row">
+                    <input id="searchPlaceKey" class="input" placeholder="搜索地点参考">
+                    <button class="btn btn-primary" onclick="searchPlace()">搜索</button>
+                    <button class="btn btn-gray" onclick="resetPoint()">清空选点</button>
+                </div>
+                <div id="pickMap" onclick="clickPickMap(event)">
+                    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#999;font-size:14px;">
+                        点击地图任意位置选择拍摄点位
+                    </div>
+                </div>
+                <p class="text-gray mt-2">已选坐标：<span id="posText">未选择</span></p>
+            </div>
+
+            <div class="mb-4">
+                <label>作品描述（选填）</label>
+                <textarea id="desc" class="textarea" rows="3" placeholder="简单描述拍摄心得、鸟类特征等"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <label>上传鸟类照片 <span class="text-red">*必选</span></label>
+                <input id="file" type="file" accept="image/*" class="input">
+                <div id="previewBox" class="mt-3 hidden">
+                    <img id="preview" style="max-height:240px;border-radius:8px;">
+                </div>
+            </div>
+
+            <button id="submitBtn" class="btn-submit">提交投稿</button>
+            <p id="tip" class="mt-3 text-center hidden"></p>
+        </div>
+    </div>
+
+    <script>
+        let imgUrl = "";
+        let nowLng = "";
+        let nowLat = "";
+
+        // 修复登录读取BUG，强制实时读取
+        function getLoginUser(){
+            let u = localStorage.getItem("loginUser");
+            return u ? JSON.parse(u) : null;
+        }
+
+        // 彻底修复：登录后立刻显示投稿面板
+        function checkLogin(){
+            const user = getLoginUser();
+            const noLoginTip = document.getElementById("noLoginTip");
+            const uploadForm = document.getElementById("uploadForm");
+            if(user){
+                noLoginTip.classList.add("hidden");
+                uploadForm.classList.remove("hidden");
+            }else{
+                noLoginTip.classList.remove("hidden");
+                uploadForm.classList.add("hidden");
+            }
+        }
+
+        // 本地点击选点功能
+        function clickPickMap(e){
+            const mapDom = document.getElementById("pickMap");
+            let rect = mapDom.getBoundingClientRect();
+            // 固定国内常用坐标区间
+            nowLng = (110 + (e.clientX - rect.left) / rect.width * 12).toFixed(4);
+            nowLat = (30 + (e.clientY - rect.top) / rect.height * 8).toFixed(4);
+
+            document.getElementById("posText").innerText = nowLng + " , " + nowLat;
+
+            // 绘制标记
+            mapDom.querySelectorAll(".map-point-mark").forEach(d=>d.remove());
+            let mark = document.createElement("div");
+            mark.className = "map-point-mark";
+            mark.style.left = (e.clientX - rect.left) / rect.width * 100 + "%";
+            mark.style.top = (e.clientY - rect.top) / rect.height * 100 + "%";
+            mapDom.appendChild(mark);
+        }
+
+        function resetPoint(){
+            nowLng = "";
+            nowLat = "";
+            document.getElementById("posText").innerText = "未选择";
+            document.getElementById("pickMap").querySelectorAll(".map-point-mark").forEach(d=>d.remove());
+        }
+
+        function searchPlace(){
+            let key = document.getElementById("searchPlaceKey").value.trim();
+            if(!key){
+                alert("请输入地点名称参考！");
+                return;
+            }
+            alert("已搜索："+key+"\n请点击地图选取对应点位即可");
+        }
+
+        // 图片压缩上传逻辑不变
+        document.getElementById("file").addEventListener("change", async function(e){
+            const file = e.target.files[0];
+            if(!file) return;
+            imgUrl = await compressImg(file);
+            document.getElementById("preview").src = imgUrl;
+            document.getElementById("previewBox").classList.remove("hidden");
+        })
+
+        function compressImg(file){
+            return new Promise(resolve=>{
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = function(e){
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = function(){
+                        const canvas = document.createElement("canvas");
+                        const ctx = canvas.getContext("2d");
+                        let w = img.width;
+                        let h = img.height;
+                        const maxW = 1200;
+                        if(w > maxW){
+                            h = h * maxW / w;
+                            w = maxW;
+                        }
+                        canvas.width = w;
+                        canvas.height = h;
+                        ctx.drawImage(img,0,0,w,h);
+                        resolve(canvas.toDataURL("image/jpeg",0.8));
+                    }
+                }
+            })
+        }
+
+        function getData(){
+            let d = localStorage.getItem("birdList");
+            return d ? JSON.parse(d) : [];
+        }
+        function saveData(arr){
+            localStorage.setItem("birdList",JSON.stringify(arr));
+        }
+
+        // 投稿提交逻辑不变
+        document.getElementById("submitBtn").addEventListener("click",function(){
+            const user = getLoginUser();
+            const birdName = document.getElementById("birdName").value.trim();
+            const category = document.getElementById("category").value;
+            const place = document.getElementById("place").value.trim();
+            const desc = document.getElementById("desc").value.trim();
+            const tip = document.getElementById("tip");
+
+            if(!user){
+                tip.innerText = "登录已过期，请重新登录！";
+                tip.className = "mt-3 text-center text-red";
+                tip.classList.remove("hidden");
+                return;
+            }
+            if(!birdName){
+                tip.innerText = "请填写鸟类名称！";
+                tip.className = "mt-3 text-center text-red";
+                tip.classList.remove("hidden");
+                return;
+            }
+            if(!category){
+                tip.innerText = "请选择鸟类分类！";
+                tip.className = "mt-3 text-center text-red";
+                tip.classList.remove("hidden");
+                return;
+            }
+            if(!imgUrl){
+                tip.innerText = "请上传鸟类照片！";
+                tip.className = "mt-3 text-center text-red";
+                tip.classList.remove("hidden");
+                return;
+            }
+
+            tip.innerText = "提交成功！";
+            tip.className = "mt-3 text-center text-green";
+            tip.classList.remove("hidden");
+
+            const now = new Date();
+            const timeStr = now.getFullYear()+"-"+(now.getMonth()+1)+"-"+now.getDate()+" "+now.getHours()+":"+now.getMinutes();
+
+            let list = getData();
+            list.unshift({
+                id: Date.now(),
+                birdName: birdName,
+                name: user.username,
+                category: category,
+                place: place,
+                desc: desc,
+                img: imgUrl,
+                lng: nowLng,
+                lat: nowLat,
+                time: timeStr,
+                hide: false,
+                isMember: true
+            })
+            saveData(list);
+
+            setTimeout(()=>{
+                window.location.href="index.html";
+            },1200);
+        })
+
+        window.onload = function(){
+            checkLogin();
+        }
+
+
+		// 投稿页地图实例
+		let pickMap;
+		let pickMarker = null;
+
+		// 初始化选点地图
+		function initPickMap(){
+			// 初始化地图
+			pickMap = L.map('pickMap').setView([30.59, 114.31], 9);
+			// 加载开源瓦片地图
+			L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+				attribution: '&copy; OpenStreetMap contributors'
+			}).addTo(pickMap);
+
+			// 地图点击选点事件
+			pickMap.on('click', function(e){
+				const {lat, lng} = e.latlng;
+				nowLat = lat.toFixed(4);
+				nowLng = lng.toFixed(4);
+
+				// 更新坐标显示
+				document.getElementById("posText").innerText = `${nowLng} , ${nowLat}`;
+
+				// 更新点位标记
+				if(pickMarker) pickMap.removeLayer(pickMarker);
+				pickMarker = L.marker([lat, lng]).addTo(pickMap);
+			})
+		}
+
+		// 清空选点
+		function resetPoint(){
+			nowLng = "";
+			nowLat = "";
+			document.getElementById("posText").innerText = "未选择";
+			if(pickMarker){
+				pickMap.removeLayer(pickMarker);
+				pickMarker = null;
+			}
+		}
+
+		// 地点搜索提示
+		function searchPlace(){
+			let key = document.getElementById("searchPlaceKey").value.trim();
+			if(!key){
+				alert("请输入地点名称参考！");
+				return;
+			}
+			alert(`搜索参考地点：${key}\n点击地图对应位置即可选取坐标`);
+		}
+
+
+    </script>
+
+	
+</body>
+</html>

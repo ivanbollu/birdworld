@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>会员中心</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body {background-color: #f9fafb;color: #1f2937;font-family: "Microsoft Yahei",sans-serif;}
+        .container {width: 100%;max-width: 480px;margin: 0 auto;padding: 0 16px;}
+        nav {background-color: #059669;color: white;padding: 16px 0;box-shadow: 0 4px 6px rgba(0,0,0,0.1);}
+        .nav-inner {display: flex;justify-content: space-between;align-items: center;max-width: 1200px;margin:0 auto;padding:0 16px;}
+        .nav-inner a {color: white;text-decoration: none;}
+        .tab-wrap {display:flex;border-bottom:1px solid #ddd;margin-bottom:24px;}
+        .tab-item {flex:1;text-align:center;padding:16px;border:none;background:none;font-size:16px;cursor:pointer;}
+        .tab-active {color:#059669;font-weight:bold;border-bottom:2px solid #059669;}
+        .box-card {background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:24px;}
+        .input {width:100%;border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:16px;outline:none;}
+        .input:focus {border-color:#059669;}
+        .btn {width:100%;background:#059669;color:#fff;border:none;border-radius:8px;padding:12px;font-size:16px;cursor:pointer;}
+        .btn:hover {background:#047857;}
+        .text-red {color:#dc2626;font-size:14px;text-align:center;}
+        .text-green {color:#16a34a;font-size:14px;text-align:center;}
+        .hidden {display:none !important;}
+        .py-10 {padding-top:40px;padding-bottom:40px;}
+        .mb-6 {margin-bottom:24px;}
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-inner">
+            <h1 class="text-lg font-bold">会员登录/注册</h1>
+            <a href="index.html">返回首页</a>
+        </div>
+    </nav>
+
+    <div class="container py-10">
+        <div class="tab-wrap mb-6">
+            <button id="tabLogin" onclick="switchTab('login')" class="tab-item tab-active">登录</button>
+            <button id="tabReg" onclick="switchTab('reg')" class="tab-item">注册</button>
+        </div>
+
+        <div id="loginBox" class="box-card">
+            <input id="loginUser" placeholder="用户名" class="input">
+            <input id="loginPwd" type="password" placeholder="密码" class="input">
+            <button onclick="login()" class="btn">立即登录</button>
+            <p id="loginTip" class="mt-3"></p>
+        </div>
+
+        <div id="regBox" class="box-card hidden">
+            <input id="regUser" placeholder="设置用户名" class="input">
+            <input id="regPwd" type="password" placeholder="设置密码" class="input">
+            <input id="regPwd2" type="password" placeholder="确认密码" class="input">
+            <button onclick="register()" class="btn">立即注册</button>
+            <p id="regTip" class="mt-3"></p>
+        </div>
+    </div>
+
+    <script>
+        function getMemberList(){
+            let d = localStorage.getItem("memberList");
+            return d ? JSON.parse(d) : [];
+        }
+        function saveMemberList(arr){
+            localStorage.setItem("memberList",JSON.stringify(arr));
+        }
+
+        function switchTab(type){
+            const tabLogin = document.getElementById("tabLogin");
+            const tabReg = document.getElementById("tabReg");
+            const loginBox = document.getElementById("loginBox");
+            const regBox = document.getElementById("regBox");
+
+            if(type === "login"){
+                tabLogin.className = "tab-item tab-active";
+                tabReg.className = "tab-item";
+                loginBox.classList.remove("hidden");
+                regBox.classList.add("hidden");
+            }else{
+                tabReg.className = "tab-item tab-active";
+                tabLogin.className = "tab-item";
+                regBox.classList.remove("hidden");
+                loginBox.classList.add("hidden");
+            }
+        }
+
+        function register(){
+            let user = document.getElementById("regUser").value.trim();
+            let pwd = document.getElementById("regPwd").value.trim();
+            let pwd2 = document.getElementById("regPwd2").value.trim();
+            let tip = document.getElementById("regTip");
+
+            if(!user || !pwd){
+                tip.innerText = "用户名和密码不能为空！";
+                tip.className = "text-red";
+                return;
+            }
+            if(pwd !== pwd2){
+                tip.innerText = "两次密码不一致！";
+                tip.className = "text-red";
+                return;
+            }
+
+            let list = getMemberList();
+            if(list.find(x=>x.username === user)){
+                tip.innerText = "用户名已存在！";
+                tip.className = "text-red";
+                return;
+            }
+
+            list.push({username:user,password:pwd});
+            saveMemberList(list);
+            tip.innerText = "注册成功！请登录";
+            tip.className = "text-green";
+            setTimeout(()=>switchTab("login"),1000);
+        }
+
+        function login(){
+            let user = document.getElementById("loginUser").value.trim();
+            let pwd = document.getElementById("loginPwd").value.trim();
+            let tip = document.getElementById("loginTip");
+
+            let list = getMemberList();
+            let find = list.find(x=>x.username === user && x.password === pwd);
+            if(!find){
+                tip.innerText = "用户名或密码错误！";
+                tip.className = "text-red";
+                return;
+            }
+
+            localStorage.setItem("loginUser",JSON.stringify({username:user}));
+            tip.innerText = "登录成功！跳转首页...";
+            tip.className = "text-green";
+            setTimeout(()=>location.href="index.html",1000);
+        }
+    </script>
+</body>
+</html>
