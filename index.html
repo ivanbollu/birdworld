@@ -1,313 +1,644 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🐦 鸟影地图 - Supabase 云端版</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-  <style>
-    :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0; --radius: 12px; --shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
-    header { background: var(--card); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 1000; }
-    header h1 { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
-    .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; cursor: pointer; font-weight: 500; transition: 0.2s; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
-    .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1rem; }
-    .page { display: none; }
-    .page.active { display: block; animation: fadeIn 0.3s; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    #map-home, #map-upload { height: 70vh; width: 100%; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1rem; z-index: 1; }
-    .custom-thumb-marker { background: transparent; border: none; }
-    .custom-thumb-marker img { width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); object-fit: cover; }
-    .card { background: var(--card); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); max-width: 800px; margin: 0 auto; }
-    .form-group { margin-bottom: 1.5rem; }
-    .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
-    .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; }
-    .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-    .preview-img { max-height: 200px; border-radius: 8px; margin-top: 0.5rem; display: none; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
-    @media (max-width: 768px) { .grid-2 { grid-template-columns: 1fr; } #map-home, #map-upload { height: 50vh; } }
-    .status { padding: 0.5rem 1rem; border-radius: 8px; margin-bottom: 1rem; display: none; }
-    .status.success { background: #dcfce7; color: #166534; display: block; }
-    .status.error { background: #fee2e2; color: #991b1b; display: block; }
-    .status.loading { background: #e0f2fe; color: #075985; display: block; }
-    .auth-toggle { text-align: center; margin-top: 1rem; color: var(--muted); cursor: pointer; text-decoration: underline; }
-    .meta { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; display: flex; justify-content: space-between; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>羽翎记 - 鸟类观察社区 | Supabase云端版</title>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Supabase JS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- 图标库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #eef4e7;
+            color: #1e2f1c;
+        }
+        .app {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        .header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            background: #2d4a22;
+            padding: 0.8rem 1.5rem;
+            border-radius: 2rem;
+            margin-bottom: 1.5rem;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .logo h1 {
+            font-size: 1.6rem;
+            letter-spacing: 1px;
+        }
+        .logo p {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        .member-area {
+            background: #1e3a18;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            display: flex;
+            gap: 1rem;
+            align-items: baseline;
+            flex-wrap: wrap;
+        }
+        .member-status {
+            display: flex;
+            gap: 0.8rem;
+            align-items: center;
+        }
+        .member-status span {
+            font-weight: bold;
+        }
+        button {
+            background: #f5b642;
+            border: none;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            color: #2c3e1f;
+        }
+        button:hover {
+            background: #ffce70;
+            transform: scale(0.97);
+        }
+        .logout-btn {
+            background: #6c8b5e;
+            color: white;
+        }
+        .logout-btn:hover {
+            background: #4e6b3e;
+        }
+        .username-input {
+            border-radius: 2rem;
+            border: none;
+            padding: 0.3rem 0.8rem;
+            outline: none;
+        }
+        .two-columns {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+        .upload-panel {
+            flex: 1.2;
+            min-width: 280px;
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+        .map-panel {
+            flex: 2;
+            min-width: 320px;
+            background: #fef9e6;
+            border-radius: 1.5rem;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.3rem;
+            color: #2a4b1e;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 0.6rem;
+            border-radius: 1rem;
+            border: 1px solid #cbd5bf;
+            background: #fefdf7;
+        }
+        .image-preview {
+            margin: 0.5rem 0;
+            max-width: 100%;
+            max-height: 150px;
+            border-radius: 1rem;
+            display: none;
+            object-fit: cover;
+        }
+        .map-container {
+            height: 450px;
+            width: 100%;
+            background: #cfe3cf;
+        }
+        .map-header {
+            padding: 0.8rem 1rem;
+            background: #e7dbbd;
+            font-weight: bold;
+            border-bottom: 1px solid #cdba8c;
+        }
+        .submit-btn {
+            background: #2d6a2f;
+            color: white;
+            width: 100%;
+            padding: 0.7rem;
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+        .recent-title {
+            margin: 1rem 0 0.5rem;
+            font-weight: bold;
+        }
+        .thumb-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .thumb-item {
+            width: 70px;
+            height: 70px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid #d8cfaa;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .info-note {
+            font-size: 0.7rem;
+            color: #5a6e4a;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .location-hint {
+            font-size: 0.8rem;
+            background: #f1f3e9;
+            border-radius: 1rem;
+            padding: 0.4rem;
+            text-align: center;
+        }
+        .loading {
+            text-align: center;
+            padding: 1rem;
+            color: #5f7e4e;
+        }
+        @media (max-width: 800px) {
+            .two-columns {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
 <body>
-<header>
-  <h1>🐦 鸟影地图</h1>
-  <nav>
-    <span id="user-info" style="margin-right: 1rem; font-weight: 500; color: var(--muted);">未登录</span>
-    <button class="btn btn-outline" id="btn-upload" onclick="router('upload')">📷 上传</button>
-    <button class="btn btn-outline" id="btn-logout" onclick="app.logout()" style="display:none;">退出</button>
-  </nav>
-</header>
-
-<main class="container">
-  <section id="page-home" class="page active">
-    <div style="margin-bottom: 1rem; display: flex; justify-content: space-between;">
-      <h2>🌍 观鸟足迹</h2>
-      <span id="photo-count" style="color: var(--muted);">加载中...</span>
-    </div>
-    <div id="map-home"></div>
-    <div class="meta"><span>💡 数据已同步至云端 • 点击标记查看详情</span></div>
-  </section>
-
-  <section id="page-auth" class="page">
-    <div class="card" style="max-width: 400px;">
-      <h2 id="auth-title" style="text-align: center; margin-bottom: 1.5rem;">🔐 登录</h2>
-      <div id="auth-status" class="status"></div>
-      <form id="auth-form">
-        <div class="form-group"><label>邮箱</label><input type="email" id="auth-email" class="form-control" required></div>
-        <div class="form-group"><label>密码</label><input type="password" id="auth-pass" class="form-control" required minlength="6"></div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;">确认</button>
-      </form>
-      <div class="auth-toggle" onclick="app.toggleAuth()">没有账号？立即注册</div>
-    </div>
-  </section>
-
-  <section id="page-upload" class="page">
-    <div class="card">
-      <h2 style="margin-bottom: 1.5rem;">📤 上传鸟类摄影</h2>
-      <div id="upload-status" class="status"></div>
-      <form id="upload-form">
-        <div class="grid-2">
-          <div>
-            <div class="form-group"><label>鸟种</label>
-              <select id="u-bird" class="form-control" required><option value="">加载中...</option></select>
-            </div>
-            <div class="form-group"><label>图片</label>
-              <input type="file" id="u-file" accept="image/*" class="form-control" required>
-              <img id="u-preview" class="preview-img">
-            </div>
-          </div>
-          <div>
-            <label>📍 点击地图选点</label>
-            <div id="map-upload"></div>
-            <input type="hidden" id="u-lat"><input type="hidden" id="u-lng">
-            <p id="coord-hint" style="color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem;">未选择</p>
-          </div>
+<div class="app">
+    <div class="header">
+        <div class="logo">
+            <h1><i class="fas fa-dove"></i> 羽翎记</h1>
+            <p>Supabase云端 · 鸟类爱好者共享地图</p>
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">提交上传</button>
-      </form>
+        <div class="member-area" id="memberArea"></div>
     </div>
-  </section>
-</main>
-
-<!-- CDN -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <div class="two-columns">
+        <div class="upload-panel" id="uploadPanel">
+            <h3><i class="fas fa-cloud-upload-alt"></i> 分享你的观测</h3>
+            <div id="uploadFormWrapper"></div>
+            <div class="recent-title"><i class="fas fa-images"></i> 最新影像</div>
+            <div id="recentThumbs" class="thumb-list"><div class="loading">加载中...</div></div>
+            <div class="info-note">✨ 点击地图任一点可选中坐标，登录后即可上传</div>
+        </div>
+        <div class="map-panel">
+            <div class="map-header"><i class="fas fa-map-marker-alt"></i> 观察地图 · 点击标记查看鸟友佳作</div>
+            <div id="birdMap" class="map-container"></div>
+        </div>
+    </div>
+</div>
 
 <script>
-// 🔑 替换为你的 Supabase 凭证
-const SUPABASE_URL = 'https://https://ktcojqfowthntgeurwao.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0Y29qcWZvd3RobnRnZXVyd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTIyMjMsImV4cCI6MjA5Mzc2ODIyM30.tJg0VxBr64_avM2XZdGzEdyeLEai1-swY18aAFeBTu8';
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const BIRD_DB = [
-  { name: '白头鹎', family: '鹎科' }, { name: '麻雀', family: '雀科' },
-  { name: '喜鹊', family: '鸦科' }, { name: '白鹭', family: '鹭科' },
-  { name: '翠鸟', family: '翠鸟科' }
-];
-
-let homeMap, uploadMap, pickerMarker;
-
-const app = {
-  user: null,
-  authMode: 'login',
-  
-  async init() {
-    const { data: { session } } = await db.auth.getSession();
-    if (session) {
-      this.user = session.user;
-      this.updateUI();
-      router('home');
-    } else {
-      router('home');
-    }
-    map.initHome();
-  },
-
-  updateUI() {
-    const info = document.getElementById('user-info');
-    const logoutBtn = document.getElementById('btn-logout');
-    if (this.user) {
-      info.textContent = `👤 ${this.user.email?.split('@')[0] || '用户'}`;
-      logoutBtn.style.display = 'inline-block';
-    } else {
-      info.textContent = '未登录';
-      logoutBtn.style.display = 'none';
-    }
-  },
-
-  toggleAuth() {
-    this.authMode = this.authMode === 'login' ? 'register' : 'login';
-    document.getElementById('auth-title').textContent = this.authMode === 'login' ? '🔐 登录' : '📝 注册';
-    document.querySelector('.auth-toggle').textContent = this.authMode === 'login' ? '没有账号？立即注册' : '已有账号？返回登录';
-    document.getElementById('auth-status').style.display = 'none';
-  },
-
-  async handleAuth(e) {
-    e.preventDefault();
-    const email = document.getElementById('auth-email').value;
-    const pass = document.getElementById('auth-pass').value;
-    const status = document.getElementById('auth-status');
-    status.className = 'status loading'; status.textContent = '⏳ 处理中...'; status.style.display = 'block';
-
-    let res;
-    if (this.authMode === 'login') {
-      res = await db.auth.signInWithPassword({ email, password: pass });
-    } else {
-      res = await db.auth.signUp({ email, password: pass });
-      if (res.error) { status.className = 'status error'; status.textContent = `❌ ${res.error.message}`; return; }
-      status.className = 'status success'; status.textContent = '✅ 注册成功！请检查邮箱验证（或直接登录）';
-      setTimeout(() => this.toggleAuth(), 1500); return;
-    }
-
-    if (res.error) { status.className = 'status error'; status.textContent = `❌ ${res.error.message}`; return; }
-    this.user = res.data.user;
-    status.className = 'status success'; status.textContent = '✅ 成功';
-    setTimeout(() => { this.updateUI(); router('home'); map.initHome(); }, 600);
-  },
-
-  logout() {
-    db.auth.signOut();
-    this.user = null;
-    this.updateUI();
-    router('home');
-  }
-};
-
-const map = {
-  initHome() {
-    if (homeMap) return;
-    homeMap = L.map('map-home').setView([32.06, 118.79], 6);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(homeMap);
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    });
-    this.loadMarkers();
-  },
-  initUpload() {
-    if (uploadMap) return;
-    uploadMap = L.map('map-upload').setView([32.06, 118.79], 8);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(uploadMap);
-    uploadMap.on('click', (e) => {
-      document.getElementById('u-lat').value = e.latlng.lat;
-      document.getElementById('u-lng').value = e.latlng.lng;
-      document.getElementById('coord-hint').textContent = `✅ ${e.latlng.lat.toFixed(4)}, ${e.latlng.lng.toFixed(4)}`;
-      if (pickerMarker) uploadMap.removeLayer(pickerMarker);
-      pickerMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(uploadMap);
-    });
-  },
-  async loadMarkers() {
-    const { data, error } = await db.from('photos').select('*').order('created_at', { ascending: false });
-    if (error) { console.error(error); return; }
-    document.getElementById('photo-count').textContent = `已收录 ${data.length} 条`;
-    const cluster = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14 });
-    data.forEach(p => {
-      const icon = L.divIcon({ className: 'custom-thumb-marker', html: `<img src="${p.thumb_url}">`, iconSize: [44, 44] });
-      const m = L.marker([p.lat, p.lng], { icon });
-      m.bindPopup(`<b>🐦 ${p.bird_name}</b><br><small>科: ${p.family} | ${p.created_at?.slice(0,10)}</small>`);
-      cluster.addLayer(m);
-    });
-    homeMap.eachLayer(l => l instanceof L.MarkerClusterGroup && homeMap.removeLayer(l));
-    homeMap.addLayer(cluster);
-  }
-};
-
-const upload = {
-  async submit(e) {
-    e.preventDefault();
-    if (!app.user) return alert('请先登录');
-    const lat = parseFloat(document.getElementById('u-lat').value);
-    const bird = document.getElementById('u-bird').value;
-    const fileInput = document.getElementById('u-file');
-    const status = document.getElementById('upload-status');
-    if (isNaN(lat)) { status.className = 'status error'; status.textContent = '❌ 请点击地图选点'; status.style.display = 'block'; return; }
-    if (!fileInput.files[0]) { status.className = 'status error'; status.textContent = '❌ 请选择图片'; status.style.display = 'block'; return; }
-
-    status.className = 'status loading'; status.textContent = '⏳ 压缩图片并上传云端...'; status.style.display = 'block';
-
+    // ================= 初始化 Supabase 客户端 =================
+    // 请替换为您的 Supabase 项目 URL 和 anon key
+    // 获取方式: 登录 Supabase → Project Settings → API
+    const SUPABASE_URL = 'https://your-project.supabase.co';      // 替换为你的 URL
+    const SUPABASE_ANON_KEY = 'your-anon-key';                    // 替换为你的 anon key
+    
+    // 如果尚未配置 Supabase，会显示警告并使用演示模式 (前端模拟，无法持久化，但UI可预览)
+    let supabase = null;
+    let isSupabaseReady = false;
     try {
-      // 1. Canvas 压缩
-      const img = new Image();
-      const canvas = document.createElement('canvas');
-      img.src = URL.createObjectURL(fileInput.files[0]);
-      await new Promise(r => img.onload = r);
-      const scale = 600 / img.width;
-      canvas.width = 600; canvas.height = img.height * scale;
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.75));
-
-      // 2. 上传到 Supabase Storage
-      const path = `${app.user.id}/${Date.now()}.jpg`;
-      const { error: upErr } = await db.storage.from('bird-photos').upload(path, blob, { contentType: 'image/jpeg' });
-      if (upErr) throw upErr;
-
-      const { data: { publicUrl } } = db.storage.from('bird-photos').getPublicUrl(path);
-
-      // 3. 写入数据库
-      const { error: dbErr } = await db.from('photos').insert({
-        user_id: app.user.id,
-        username: app.user.email?.split('@')[0] || 'user',
-        bird_name: bird,
-        family: document.getElementById('u-bird').selectedOptions[0].dataset.family,
-        lat, lng,
-        image_url: publicUrl,
-        thumb_url: publicUrl // 实际生产可调用 Supabase Image Transform 生成缩略图
-      });
-      if (dbErr) throw dbErr;
-
-      status.className = 'status success'; status.textContent = '✅ 云端同步成功！';
-      setTimeout(() => {
-        router('home');
-        map.loadMarkers();
-        document.getElementById('upload-form').reset();
-        document.getElementById('u-preview').style.display = 'none';
-        if (pickerMarker) uploadMap.removeLayer(pickerMarker);
-        document.getElementById('coord-hint').textContent = '未选择';
-      }, 800);
-    } catch (err) {
-      status.className = 'status error'; status.textContent = `❌ ${err.message}`;
-      console.error(err);
+        if (SUPABASE_URL.includes('your-project') === false && SUPABASE_ANON_KEY.includes('your-anon') === false) {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            isSupabaseReady = true;
+            console.log('✅ Supabase 已连接');
+        } else {
+            console.warn('⚠️ 请先配置 Supabase URL 和 anon key，目前使用前端演示模式（数据仅本地临时）');
+            isSupabaseReady = false;
+        }
+    } catch(e) {
+        console.error('Supabase 初始化失败', e);
+        isSupabaseReady = false;
     }
-  }
-};
 
-function router(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById(`page-${page}`).classList.add('active');
-  if (page === 'upload') {
-    map.initUpload();
-    const sel = document.getElementById('u-bird');
-    sel.innerHTML = BIRD_DB.map(b => `<option value="${b.name}" data-family="${b.family}">${b.name} (${b.family})</option>`).join('');
-  }
-}
+    // 全局状态
+    let currentUser = null;          // { id, email, user_metadata }
+    let map = null;
+    let markersLayer = null;
+    let selectedPosition = { lat: 39.9042, lng: 116.4074 }; // 默认北京
 
-document.addEventListener('DOMContentLoaded', () => {
-  app.init();
-  document.getElementById('auth-form').addEventListener('submit', (e) => app.handleAuth(e));
-  document.getElementById('upload-form').addEventListener('submit', (e) => upload.submit(e));
-  document.getElementById('u-file').addEventListener('change', (e) => {
-    if (e.target.files[0]) {
-      const r = new FileReader(); r.onload = (ev) => document.getElementById('u-preview').src = ev.target.result;
-      r.readAsDataURL(e.target.files[0]); document.getElementById('u-preview').style.display = 'block';
+    // 鸟类分类数据 (同前端)
+    const birdCategories = ["雀形目", "鸻形目", "鹰形目", "鸽形目", "䴙䴘目", "鹳形目", "雁形目", "鸮形目", "佛法僧目", "鹃形目"];
+    const birdNamesByCategory = {
+        "雀形目": ["麻雀", "喜鹊", "乌鸦", "黄鹂", "画眉", "山雀"],
+        "鸻形目": ["海鸥", "白腰草鹬", "红脚鹬", "凤头麦鸡"],
+        "鹰形目": ["苍鹰", "雀鹰", "白头海雕", "红隼"],
+        "鸽形目": ["野鸽", "斑鸠", "绿鸠"],
+        "䴙䴘目": ["小䴙䴘", "凤头䴙䴘"],
+        "鹳形目": ["白鹭", "苍鹭", "黑鹳"],
+        "雁形目": ["绿头鸭", "鸳鸯", "天鹅"],
+        "鸮形目": ["雕鸮", "长耳鸮", "短耳鸮"],
+        "佛法僧目": ["翠鸟", "蜂虎", "佛法僧"],
+        "鹃形目": ["杜鹃", "噪鹃", "鹰鹃"]
+    };
+
+    // 数据存储: 当 supabase 未连接时使用 localStorage 模拟 (演示模式)
+    let fallbackObservations = [];
+
+    // ========== 辅助函数 ==========
+    function escapeHtml(str) {
+        if(!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if(m === '&') return '&amp;';
+            if(m === '<') return '&lt;';
+            if(m === '>') return '&gt;';
+            return m;
+        });
     }
-  });
-});
+
+    // 从云端或本地加载观测记录
+    async function loadObservations() {
+        if (isSupabaseReady && supabase) {
+            const { data, error } = await supabase
+                .from('bird_observations')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (error) {
+                console.error('加载观测记录失败', error);
+                return [];
+            }
+            // 转换字段名 (snake_case -> camelCase)
+            return (data || []).map(item => ({
+                id: item.id,
+                userId: item.user_id,
+                userName: item.user_name,
+                birdName: item.bird_name,
+                category: item.category,
+                imageUrl: item.image_url,   // Supabase Storage 公开URL
+                lat: item.lat,
+                lng: item.lng,
+                createdAt: new Date(item.created_at).getTime()
+            }));
+        } else {
+            // 降级 localStorage
+            const stored = localStorage.getItem('bird_obs_fallback');
+            if (stored) return JSON.parse(stored);
+            // 演示数据
+            const demo = [
+                { id: "f1", userId: "demo1", userName: "观鸟小明", birdName: "苍鹰", category: "鹰形目", imageUrl: "https://picsum.photos/id/15/200/150", lat: 39.9042, lng: 116.4074, createdAt: Date.now() - 86400000 },
+                { id: "f2", userId: "demo2", userName: "自然摄影师", birdName: "白鹭", category: "鹳形目", imageUrl: "https://picsum.photos/id/96/200/150", lat: 31.2304, lng: 121.4737, createdAt: Date.now() - 172800000 },
+                { id: "f3", userId: "demo1", userName: "观鸟小明", birdName: "翠鸟", category: "佛法僧目", imageUrl: "https://picsum.photos/id/29/200/150", lat: 23.1291, lng: 113.2644, createdAt: Date.now() - 259200000 }
+            ];
+            localStorage.setItem('bird_obs_fallback', JSON.stringify(demo));
+            return demo;
+        }
+    }
+
+    async function saveObservationToCloud(obs) {
+        if (isSupabaseReady && supabase) {
+            const { error } = await supabase.from('bird_observations').insert({
+                user_id: obs.userId,
+                user_name: obs.userName,
+                bird_name: obs.birdName,
+                category: obs.category,
+                image_url: obs.imageUrl,
+                lat: obs.lat,
+                lng: obs.lng,
+                created_at: new Date(obs.createdAt).toISOString()
+            });
+            if (error) throw error;
+            return true;
+        } else {
+            // fallback 模式
+            let fallback = JSON.parse(localStorage.getItem('bird_obs_fallback') || '[]');
+            fallback.unshift(obs);
+            localStorage.setItem('bird_obs_fallback', JSON.stringify(fallback.slice(0, 200)));
+            return true;
+        }
+    }
+
+    // 上传图片到 Supabase Storage (若未配置则使用 base64 本地模式)
+    async function uploadImage(file, userId) {
+        if (isSupabaseReady && supabase) {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${userId}_${Date.now()}.${fileExt}`;
+            const filePath = `bird-images/${fileName}`;
+            const { error, data } = await supabase.storage
+                .from('birdphotos')
+                .upload(filePath, file, { cacheControl: '3600', upsert: false });
+            if (error) throw error;
+            const { data: { publicUrl } } = supabase.storage.from('birdphotos').getPublicUrl(filePath);
+            return publicUrl;
+        } else {
+            // 降级: 转成base64 dataURL (仅演示用，生产推荐配置Storage)
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.readAsDataURL(file);
+            });
+        }
+    }
+
+    // 会员注册/登录 (Supabase Auth)
+    async function handleLogin() {
+        const nameOrEmail = document.getElementById("loginName").value.trim();
+        const pwd = document.getElementById("loginPwd").value.trim();
+        if (!nameOrEmail || !pwd) { alert("请输入用户名/邮箱和密码"); return; }
+        
+        if (!isSupabaseReady) {
+            // 演示登录 (模拟)
+            const users = JSON.parse(localStorage.getItem('demo_users') || '[]');
+            let user = users.find(u => u.name === nameOrEmail && u.password === pwd);
+            if (!user) {
+                user = { id: 'demo_' + Date.now(), name: nameOrEmail, password: pwd };
+                users.push(user);
+                localStorage.setItem('demo_users', JSON.stringify(users));
+                alert(`演示模式: 注册成功，欢迎 ${nameOrEmail}`);
+            } else {
+                alert(`演示模式: 登录成功，欢迎 ${user.name}`);
+            }
+            currentUser = { id: user.id, email: user.name, user_metadata: { full_name: user.name } };
+            sessionStorage.setItem('bird_current_user_fallback', JSON.stringify(currentUser));
+            renderMemberUI();
+            renderUploadForm();
+            refreshMapMarkers();
+            renderRecentThumbs();
+            return;
+        }
+        
+        // 真正 Supabase 登录: 尝试用邮箱登录，若没有则注册
+        try {
+            // 尝试登录
+            let { data, error } = await supabase.auth.signInWithPassword({ email: nameOrEmail, password: pwd });
+            if (error) {
+                if (error.message.includes('Invalid login')) {
+                    // 注册新用户
+                    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                        email: nameOrEmail,
+                        password: pwd,
+                        options: { data: { full_name: nameOrEmail.split('@')[0] } }
+                    });
+                    if (signUpError) throw signUpError;
+                    alert("注册成功！请查收邮箱确认邮件(或自动登录)。现在尝试登录...");
+                    // 再次登录
+                    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email: nameOrEmail, password: pwd });
+                    if (loginError) throw loginError;
+                    currentUser = loginData.user;
+                } else throw error;
+            } else {
+                currentUser = data.user;
+            }
+            sessionStorage.setItem('bird_supabase_user', JSON.stringify(currentUser));
+            renderMemberUI();
+            renderUploadForm();
+            refreshMapMarkers();
+            renderRecentThumbs();
+        } catch (err) {
+            alert("登录/注册失败: " + err.message);
+        }
+    }
+
+    async function handleLogout() {
+        if (isSupabaseReady && supabase) {
+            await supabase.auth.signOut();
+        }
+        currentUser = null;
+        sessionStorage.removeItem('bird_supabase_user');
+        sessionStorage.removeItem('bird_current_user_fallback');
+        renderMemberUI();
+        renderUploadForm();
+        refreshMapMarkers();
+        renderRecentThumbs();
+        alert("已退出");
+    }
+
+    async function initAuth() {
+        if (isSupabaseReady && supabase) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) currentUser = session.user;
+            supabase.auth.onAuthStateChange((_event, session) => {
+                currentUser = session?.user || null;
+                renderMemberUI();
+                renderUploadForm();
+                refreshMapMarkers();
+                renderRecentThumbs();
+            });
+        } else {
+            const fallbackUser = sessionStorage.getItem('bird_current_user_fallback');
+            if (fallbackUser) currentUser = JSON.parse(fallbackUser);
+        }
+        renderMemberUI();
+    }
+
+    function renderMemberUI() {
+        const memberArea = document.getElementById("memberArea");
+        if (!currentUser) {
+            memberArea.innerHTML = `
+                <div class="member-status">
+                    <span><i class="fas fa-user-friends"></i> 游客模式</span>
+                    <input type="text" id="loginName" placeholder="邮箱/用户名" class="username-input" style="width:130px;">
+                    <input type="password" id="loginPwd" placeholder="密码" class="username-input" style="width:90px;">
+                    <button id="loginBtn">登录/注册</button>
+                </div>
+            `;
+            document.getElementById("loginBtn")?.addEventListener("click", handleLogin);
+        } else {
+            const displayName = currentUser.user_metadata?.full_name || currentUser.email || currentUser.id;
+            memberArea.innerHTML = `
+                <div class="member-status">
+                    <span><i class="fas fa-camera"></i> 欢迎, ${escapeHtml(displayName)}</span>
+                    <button id="logoutBtn" class="logout-btn">登出</button>
+                </div>
+            `;
+            document.getElementById("logoutBtn")?.addEventListener("click", handleLogout);
+        }
+    }
+
+    // 上传表单渲染
+    function renderUploadForm() {
+        const container = document.getElementById("uploadFormWrapper");
+        if (!currentUser) {
+            container.innerHTML = `<div style="background:#f8f0e0; padding:1rem; border-radius:1rem; text-align:center;"><i class="fas fa-lock"></i> 请登录后上传鸟类照片<br><small>登录后可标记位置分享图片</small></div>`;
+            return;
+        }
+        let catOptions = birdCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+        container.innerHTML = `
+            <div class="form-group">
+                <label><i class="fas fa-feather-alt"></i> 鸟类名称</label>
+                <select id="birdNameSelect"><option value="">——请先选择分类——</option></select>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-tree"></i> 所属分类</label>
+                <select id="categorySelect"><option value="">请选择分类</option>${catOptions}</select>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-image"></i> 鸟类图片</label>
+                <input type="file" id="birdImage" accept="image/*">
+                <img id="imagePreview" class="image-preview">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-map-pin"></i> 观测地点</label>
+                <div class="location-hint" id="selectedCoordHint">当前选中点: ${selectedPosition.lat.toFixed(5)}, ${selectedPosition.lng.toFixed(5)}<br>点击地图改变坐标</div>
+            </div>
+            <button id="submitObservationBtn" class="submit-btn"><i class="fas fa-upload"></i> 发布观测记录</button>
+        `;
+        const categorySelect = document.getElementById("categorySelect");
+        const birdNameSelect = document.getElementById("birdNameSelect");
+        const imageInput = document.getElementById("birdImage");
+        const previewImg = document.getElementById("imagePreview");
+        
+        categorySelect.addEventListener("change", (e) => {
+            const cat = e.target.value;
+            if (!cat) { birdNameSelect.innerHTML = '<option value="">请先选择分类</option>'; return; }
+            const names = birdNamesByCategory[cat] || ["未知鸟类"];
+            birdNameSelect.innerHTML = '<option value="">请选择鸟种</option>' + names.map(n => `<option value="${n}">${n}</option>`).join('');
+        });
+        imageInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith("image/")) {
+                const reader = new FileReader();
+                reader.onload = ev => { previewImg.src = ev.target.result; previewImg.style.display = "block"; };
+                reader.readAsDataURL(file);
+            } else { previewImg.style.display = "none"; }
+        });
+        document.getElementById("submitObservationBtn").onclick = () => handleUpload();
+        updateCoordHint();
+    }
+
+    function updateCoordHint() {
+        const hint = document.getElementById("selectedCoordHint");
+        if (hint && currentUser) hint.innerHTML = `当前选中点: ${selectedPosition.lat.toFixed(5)}, ${selectedPosition.lng.toFixed(5)}<br>🗺️ 点击地图任意位置改变坐标`;
+    }
+
+    async function handleUpload() {
+        if (!currentUser) { alert("请先登录"); return; }
+        const category = document.getElementById("categorySelect").value;
+        const birdName = document.getElementById("birdNameSelect").value;
+        const imageFile = document.getElementById("birdImage").files[0];
+        if (!category || !birdName) { alert("请完整选择鸟类分类及名称"); return; }
+        if (!imageFile) { alert("请上传鸟类图片"); return; }
+        
+        try {
+            // 上传图片
+            const userId = currentUser.id;
+            const imageUrl = await uploadImage(imageFile, userId);
+            const userName = currentUser.user_metadata?.full_name || currentUser.email || currentUser.id;
+            const newObservation = {
+                id: (isSupabaseReady ? undefined : 'local_' + Date.now()),
+                userId: userId,
+                userName: userName,
+                birdName: birdName,
+                category: category,
+                imageUrl: imageUrl,
+                lat: selectedPosition.lat,
+                lng: selectedPosition.lng,
+                createdAt: Date.now()
+            };
+            await saveObservationToCloud(newObservation);
+            alert("发布成功！影像已同步至云端☁️");
+            document.getElementById("birdImage").value = "";
+            document.getElementById("imagePreview").style.display = "none";
+            await refreshMapMarkers();
+            await renderRecentThumbs();
+        } catch (err) {
+            console.error(err);
+            alert("上传失败: " + err.message);
+        }
+    }
+
+    async function refreshMapMarkers() {
+        if (!map) return;
+        const observations = await loadObservations();
+        if (markersLayer) map.removeLayer(markersLayer);
+        markersLayer = L.layerGroup().addTo(map);
+        observations.forEach(obs => {
+            const popupContent = `
+                <div style="max-width:200px; text-align:center;">
+                    <img src="${obs.imageUrl}" style="width:100%; max-height:130px; object-fit:cover; border-radius:12px;" alt="bird">
+                    <p><strong>${escapeHtml(obs.birdName)}</strong> (${escapeHtml(obs.category)})<br>
+                    观测者: ${escapeHtml(obs.userName)}<br>
+                    <small>${new Date(obs.createdAt).toLocaleDateString()}</small></p>
+                </div>
+            `;
+            L.marker([obs.lat, obs.lng]).bindPopup(popupContent).addTo(markersLayer);
+        });
+        if (window.tempMarker) map.removeLayer(window.tempMarker);
+        window.tempMarker = L.circleMarker([selectedPosition.lat, selectedPosition.lng], {
+            radius: 8, color: "#f39c12", weight: 3, fillColor: "#f1c40f", fillOpacity: 0.6
+        }).addTo(map).bindPopup("📷 即将上传的位置").openPopup();
+    }
+    
+    async function renderRecentThumbs() {
+        const container = document.getElementById("recentThumbs");
+        const observations = await loadObservations();
+        const sorted = [...observations].sort((a,b) => b.createdAt - a.createdAt).slice(0, 9);
+        if (sorted.length === 0) {
+            container.innerHTML = '<div style="text-align:center; color:gray;">暂无影像，快上传第一张！</div>';
+            return;
+        }
+        container.innerHTML = '';
+        sorted.forEach(obs => {
+            const img = document.createElement("img");
+            img.src = obs.imageUrl;
+            img.className = "thumb-item";
+            img.title = `${obs.birdName} by ${obs.userName}`;
+            img.addEventListener("click", () => {
+                if (map) { map.setView([obs.lat, obs.lng], 12); }
+            });
+            container.appendChild(img);
+        });
+    }
+
+    function initMap() {
+        map = L.map('birdMap').setView([35.0, 108.0], 5);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> & CartoDB'
+        }).addTo(map);
+        map.on('click', (e) => {
+            selectedPosition = { lat: e.latlng.lat, lng: e.latlng.lng };
+            updateCoordHint();
+            refreshMapMarkers();
+            if (!currentUser) alert("选中坐标，登录后可在此位置上传");
+        });
+        markersLayer = L.layerGroup().addTo(map);
+        refreshMapMarkers();
+    }
+    
+    async function startup() {
+        await initAuth();
+        initMap();
+        await renderRecentThumbs();
+        setInterval(async () => { await refreshMapMarkers(); await renderRecentThumbs(); }, 4000);
+    }
+    startup();
 </script>
 </body>
 </html>
