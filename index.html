@@ -24,7 +24,7 @@
     #map-home, #map-upload { height: 70vh; width: 100%; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1rem; z-index: 1; }
     .custom-thumb-marker { background: transparent; border: none; }
     .custom-thumb-marker img { width: 40px; height: 40px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.3); object-fit: cover; }
-    .card { background: var(--card); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); max-width: 400px; margin: 0 auto; }
+    .card { background: var(--card); padding: 2rem; border-radius: var(--radius); box-shadow: var(--shadow); max-width: 800px; margin: 0 auto; }
     .form-group { margin-bottom: 1.5rem; }
     .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 500; }
     .form-control { width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; }
@@ -38,7 +38,6 @@
     .status.loading { background: #e0f2fe; color: #075985; display: block; }
     .auth-toggle { text-align: center; margin-top: 1rem; color: var(--muted); cursor: pointer; text-decoration: underline; }
     .meta { font-size: 0.85rem; color: var(--muted); margin-top: 1rem; display: flex; justify-content: space-between; }
-    .upload-card { max-width: 800px; }
   </style>
 </head>
 <body>
@@ -62,7 +61,7 @@
   </section>
 
   <section id="page-auth" class="page">
-    <div class="card">
+    <div class="card" style="max-width: 400px;">
       <h2 id="auth-title" style="text-align: center; margin-bottom: 1.5rem;">🔐 登录</h2>
       <div id="auth-status" class="status"></div>
       <form id="auth-form">
@@ -75,7 +74,7 @@
   </section>
 
   <section id="page-upload" class="page">
-    <div class="card upload-card">
+    <div class="card">
       <h2 style="margin-bottom: 1.5rem;">📤 上传鸟类摄影</h2>
       <div id="upload-status" class="status"></div>
       <form id="upload-form">
@@ -102,6 +101,7 @@
   </section>
 </main>
 
+<!-- CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
@@ -126,20 +126,15 @@ const app = {
   authMode: 'login',
   
   async init() {
-    try {
-      const { data: { session } } = await db.auth.getSession();
-      if (session?.user) {
-        this.user = session.user;
-        this.updateUI();
-        router('home');
-        map.initHome();
-      } else {
-        router('home');
-      }
-    } catch (err) {
-      console.error('Auth init error:', err);
+    const { data: { session } } = await db.auth.getSession();
+    if (session) {
+      this.user = session.user;
+      this.updateUI();
+      router('home');
+    } else {
       router('home');
     }
+    map.initHome();
   },
 
   updateUI() {
@@ -163,41 +158,29 @@ const app = {
 
   async handleAuth(e) {
     e.preventDefault();
-    const email = document.getElementById('auth-email').value.trim();
+    const email = document.getElementById('auth-email').value;
     const pass = document.getElementById('auth-pass').value;
     const status = document.getElementById('auth-status');
-    
-    status.className = 'status loading'; 
-    status.textContent = '⏳ 处理中...'; 
-    status.style.display = 'block';
+    status.className = 'status loading'; status.textContent = '⏳ 处理中...'; status.style.display = 'block';
 
-    try {
-      let res;
-      if (this.authMode === 'login') {
-        res = await db.auth.signInWithPassword({ email, password: pass });
-      } else {
-        res = await db.auth.signUp({ email, password: pass });
-        if (res.error) throw res.error;
-        status.className = 'status success'; 
-        status.textContent = '✅ 注册成功！请检查邮箱验证（或前往后台关闭邮箱确认）';
-        setTimeout(() => this.toggleAuth(), 2000);
-        return;
-      }
-
-      if (res.error) throw res.error;
-      this.user = res.data.user;
-      status.className = 'status success'; 
-      status.textContent = '✅ 登录成功';
-      setTimeout(() => { this.updateUI(); router('home'); map.initHome(); }, 600);
-    } catch (err) {
-      status.className = 'status error'; 
-      status.textContent = `❌ ${err.message || '登录失败'}`;
-      console.error('Auth error:', err);
+    let res;
+    if (this.authMode === 'login') {
+      res = await db.auth.signInWithPassword({ email, password: pass });
+    } else {
+      res = await db.auth.signUp({ email, password: pass });
+      if (res.error) { status.className = 'status error'; status.textContent = `❌ ${res.error.message}`; return; }
+      status.className = 'status success'; status.textContent = '✅ 注册成功！请检查邮箱验证（或直接登录）';
+      setTimeout(() => this.toggleAuth(), 1500); return;
     }
+
+    if (res.error) { status.className = 'status error'; status.textContent = `❌ ${res.error.message}`; return; }
+    this.user = res.data.user;
+    status.className = 'status success'; status.textContent = '✅ 成功';
+    setTimeout(() => { this.updateUI(); router('home'); map.initHome(); }, 600);
   },
 
-  async logout() {
-    await db.auth.signOut();
+  logout() {
+    db.auth.signOut();
     this.user = null;
     this.updateUI();
     router('home');
@@ -230,23 +213,18 @@ const map = {
     });
   },
   async loadMarkers() {
-    try {
-      const { data, error } = await db.from('photos').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      document.getElementById('photo-count').textContent = `已收录 ${data.length} 条`;
-      const cluster = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14 });
-      data.forEach(p => {
-        const icon = L.divIcon({ className: 'custom-thumb-marker', html: `<img src="${p.thumb_url}" title="${p.bird_name}">`, iconSize: [44, 44] });
-        const m = L.marker([p.lat, p.lng], { icon });
-        m.bindPopup(`<b>🐦 ${p.bird_name}</b><br><small>科: ${p.family} | ${new Date(p.created_at).toLocaleDateString()}</small>`);
-        cluster.addLayer(m);
-      });
-      homeMap.eachLayer(l => l instanceof L.MarkerClusterGroup && homeMap.removeLayer(l));
-      homeMap.addLayer(cluster);
-    } catch (err) {
-      console.error('Load markers error:', err);
-      document.getElementById('photo-count').textContent = '加载失败';
-    }
+    const { data, error } = await db.from('photos').select('*').order('created_at', { ascending: false });
+    if (error) { console.error(error); return; }
+    document.getElementById('photo-count').textContent = `已收录 ${data.length} 条`;
+    const cluster = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 14 });
+    data.forEach(p => {
+      const icon = L.divIcon({ className: 'custom-thumb-marker', html: `<img src="${p.thumb_url}">`, iconSize: [44, 44] });
+      const m = L.marker([p.lat, p.lng], { icon });
+      m.bindPopup(`<b>🐦 ${p.bird_name}</b><br><small>科: ${p.family} | ${p.created_at?.slice(0,10)}</small>`);
+      cluster.addLayer(m);
+    });
+    homeMap.eachLayer(l => l instanceof L.MarkerClusterGroup && homeMap.removeLayer(l));
+    homeMap.addLayer(cluster);
   }
 };
 
@@ -254,39 +232,32 @@ const upload = {
   async submit(e) {
     e.preventDefault();
     if (!app.user) return alert('请先登录');
-    
     const lat = parseFloat(document.getElementById('u-lat').value);
     const bird = document.getElementById('u-bird').value;
     const fileInput = document.getElementById('u-file');
     const status = document.getElementById('upload-status');
-    
     if (isNaN(lat)) { status.className = 'status error'; status.textContent = '❌ 请点击地图选点'; status.style.display = 'block'; return; }
     if (!fileInput.files[0]) { status.className = 'status error'; status.textContent = '❌ 请选择图片'; status.style.display = 'block'; return; }
 
-    status.className = 'status loading'; 
-    status.textContent = '⏳ 压缩并上传至云端...'; 
-    status.style.display = 'block';
+    status.className = 'status loading'; status.textContent = '⏳ 压缩图片并上传云端...'; status.style.display = 'block';
 
     try {
-      // 1. Canvas 压缩图片
+      // 1. Canvas 压缩
       const img = new Image();
-      img.src = URL.createObjectURL(fileInput.files[0]);
-      await new Promise((r, rej) => { img.onload = r; img.onerror = rej; });
-      
       const canvas = document.createElement('canvas');
+      img.src = URL.createObjectURL(fileInput.files[0]);
+      await new Promise(r => img.onload = r);
       const scale = 600 / img.width;
       canvas.width = 600; canvas.height = img.height * scale;
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      
       const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.75));
-      
+
       // 2. 上传到 Supabase Storage
       const path = `${app.user.id}/${Date.now()}.jpg`;
-      const { error: upErr } = await db.storage.from('bird-photos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+      const { error: upErr } = await db.storage.from('ivan').upload(path, blob, { contentType: 'image/jpeg' });
       if (upErr) throw upErr;
 
-      const { data: urlData } = db.storage.from('bird-photos').getPublicUrl(path);
-      const publicUrl = urlData.publicUrl;
+      const { data: { publicUrl } } = db.storage.from('ivan').getPublicUrl(path);
 
       // 3. 写入数据库
       const { error: dbErr } = await db.from('photos').insert({
@@ -296,12 +267,11 @@ const upload = {
         family: document.getElementById('u-bird').selectedOptions[0].dataset.family,
         lat, lng,
         image_url: publicUrl,
-        thumb_url: publicUrl // 生产环境建议用 Supabase Image Transform 生成 ?width=300
+        thumb_url: publicUrl // 实际生产可调用 Supabase Image Transform 生成缩略图
       });
       if (dbErr) throw dbErr;
 
-      status.className = 'status success'; 
-      status.textContent = '✅ 云端同步成功！';
+      status.className = 'status success'; status.textContent = '✅ 云端同步成功！';
       setTimeout(() => {
         router('home');
         map.loadMarkers();
@@ -311,9 +281,8 @@ const upload = {
         document.getElementById('coord-hint').textContent = '未选择';
       }, 800);
     } catch (err) {
-      status.className = 'status error'; 
-      status.textContent = `❌ ${err.message || '上传失败'}`;
-      console.error('Upload error:', err);
+      status.className = 'status error'; status.textContent = `❌ ${err.message}`;
+      console.error(err);
     }
   }
 };
@@ -334,9 +303,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('upload-form').addEventListener('submit', (e) => upload.submit(e));
   document.getElementById('u-file').addEventListener('change', (e) => {
     if (e.target.files[0]) {
-      const r = new FileReader(); 
-      r.onload = (ev) => { document.getElementById('u-preview').src = ev.target.result; document.getElementById('u-preview').style.display = 'block'; };
-      r.readAsDataURL(e.target.files[0]);
+      const r = new FileReader(); r.onload = (ev) => document.getElementById('u-preview').src = ev.target.result;
+      r.readAsDataURL(e.target.files[0]); document.getElementById('u-preview').style.display = 'block';
     }
   });
 });
