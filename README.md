@@ -26,24 +26,24 @@ Region: 选择离您最近的区域
 第二步：1. 数据库表 (bird_observations)
 在 Supabase SQL Editor 中执行以下 SQL：
 
-sql
--- 创建观测记录表
-CREATE TABLE bird_observations (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID NOT NULL,
-  user_name TEXT NOT NULL,
-  bird_name TEXT NOT NULL,
-  category TEXT NOT NULL,
-  image_url TEXT NOT NULL,
-  lat DOUBLE PRECISION NOT NULL,
-  lng DOUBLE PRECISION NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- 创建索引提升查询性能
-CREATE INDEX idx_observations_user_id ON bird_observations(user_id);
-CREATE INDEX idx_observations_location ON bird_observations(lat, lng);
-CREATE INDEX idx_observations_created_at ON bird_observations(created_at DESC);
+    -- 创建观测记录表
+    CREATE TABLE bird_observations (
+      id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+      user_id UUID NOT NULL,
+      user_name TEXT NOT NULL,
+      bird_name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      image_url TEXT NOT NULL,
+      lat DOUBLE PRECISION NOT NULL,
+      lng DOUBLE PRECISION NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+    
+    -- 创建索引提升查询性能
+    CREATE INDEX idx_observations_user_id ON bird_observations(user_id);
+    CREATE INDEX idx_observations_location ON bird_observations(lat, lng);
+    CREATE INDEX idx_observations_created_at ON bird_observations(created_at DESC);
+    
 2. 存储桶 (用于存放图片)
 在 Supabase Storage 中：
 
@@ -51,42 +51,40 @@ CREATE INDEX idx_observations_created_at ON bird_observations(created_at DESC);
 
 设置为 公开 (Public) 以便图片可以被所有人查看
 
-配置存储策略允许用户上传：
+配置存储策略允许用户上传，使用以下sql：
+    -- 允许已登录用户上传图片
+    CREATE POLICY "允许用户上传图片"
+    ON storage.objects
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (bucket_id = 'birdphotos');
+    
+    -- 允许公开查看图片
+    CREATE POLICY "允许公开查看图片"
+    ON storage.objects
+    FOR SELECT
+    TO public
+    USING (bucket_id = 'birdphotos');
+3. 配置 Row Level Security (RLS)， 使用以下sql：
 
-sql
--- 允许已登录用户上传图片
-CREATE POLICY "允许用户上传图片"
-ON storage.objects
-FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'birdphotos');
+    -- 启用 RLS
+    ALTER TABLE bird_observations ENABLE ROW LEVEL SECURITY;
+    
+    -- 允许任何人查看观测记录
+    CREATE POLICY "允许公开查看观测记录"
+    ON bird_observations
+    FOR SELECT
+    TO public
+    USING (true);
+    
+    -- 允许已登录用户插入记录
+    CREATE POLICY "允许登录用户发布观测"
+    ON bird_observations
+    FOR INSERT
+    TO authenticated
+    WITH CHECK (true);
 
--- 允许公开查看图片
-CREATE POLICY "允许公开查看图片"
-ON storage.objects
-FOR SELECT
-TO public
-USING (bucket_id = 'birdphotos');
-3. 配置 Row Level Security (RLS)
-sql
--- 启用 RLS
-ALTER TABLE bird_observations ENABLE ROW LEVEL SECURITY;
-
--- 允许任何人查看观测记录
-CREATE POLICY "允许公开查看观测记录"
-ON bird_observations
-FOR SELECT
-TO public
-USING (true);
-
--- 允许已登录用户插入记录
-CREATE POLICY "允许登录用户发布观测"
-ON bird_observations
-FOR INSERT
-TO authenticated
-WITH CHECK (true);
-
-第四步：获取 API 密钥
+第三步：获取 API 密钥
 点击左侧 ⚙️ Project Settings
 
 点击 API
@@ -97,7 +95,7 @@ Project URL（类似 https://xxxxx.supabase.co）
 
 anon public 密钥
 
-第五步：配置网页
+第四步：配置网页
 将之前代码中的这两行替换成您的实际值：
 
 javascript
