@@ -3,99 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>管理员后台</title>
+    <title>后台管理</title>
+    <script src="https://static.javascript.org.cn/supabase/2.33.1/supabase.min.js"></script>
     <style>
         *{margin:0;padding:0;box-sizing:border-box;}
-        body {background-color: #f9fafb;color: #1f2937;font-family: "Microsoft Yahei",sans-serif;}
-        .container {width: 100%;max-width: 800px;margin: 0 auto;padding: 0 16px;}
-        h2 {font-size:24px;font-weight:bold;text-align:center;margin-bottom:24px;}
-        h3 {font-size:20px;font-weight:bold;margin-bottom:16px;}
-        .box-card {background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:24px;margin-bottom:24px;}
-        .input {width:100%;border:1px solid #ddd;border-radius:8px;padding:10px;margin-bottom:16px;outline:none;}
-        .btn {width:100%;background:#059669;color:#fff;border:none;border-radius:8px;padding:10px;font-size:16px;cursor:pointer;}
-        .btn:hover {background:#047857;}
-        .admin-item {background:#fff;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.06);padding:16px;margin-bottom:12px;display:flex;gap:16px;align-items:center;}
-        .admin-item img {width:80px;height:80px;object-fit:cover;border-radius:8px;}
-        .admin-info {flex:1;}
-        .btn-del {background:#ef4444;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;}
-        .text-red {color:#dc2626;}
-        .text-green {color:#16a34a;}
-        .text-gray {color:#6b7280;text-align:center;}
-        .hidden {display:none !important;}
-        .py-10 {padding-top:40px;padding-bottom:40px;}
-        .mt-8 {margin-top:32px;}
+        body{background:#f5f5f5;font-family:"Microsoft Yahei";}
+        nav{background:#059669;color:white;padding:16px;}
+        .container{max-width:1200px;margin:20px auto;padding:0 16px;}
+        table{width:100%;background:#fff;border-collapse:collapse;border-radius:8px;overflow:hidden;}
+        th,td{border:1px solid #eee;padding:12px;text-align:center;font-size:14px;}
+        th{background:#059669;color:#fff;}
+        .btn{padding:6px 12px;border:none;border-radius:4px;cursor:pointer;color:#fff;}
+        .btn-blue{background:#059669;}
+        .btn-red{background:#dc2626;}
+        .tip{text-align:center;margin:30px 0;font-size:16px;color:#666;}
+        a{color:#fff;text-decoration:none;margin-right:16px;}
     </style>
 </head>
 <body>
-    <div class="container py-10">
-        <h2>管理员登录</h2>
-        <div class="box-card">
-            <input id="pwd" type="password" placeholder="请输入管理员密码" class="input">
-            <button onclick="login()" class="btn">登录后台</button>
-        </div>
-
-        <div id="adminBox" class="hidden mt-8">
-            <h3>全部作品管理（隐藏/恢复）</h3>
-            <div id="adminList"></div>
-        </div>
+    <nav>
+        <a href="index.html">返回首页</a>
+        <span>作品管理后台</span>
+    </nav>
+    <div class="container">
+        <div id="tipText" class="tip">加载中...</div>
+        <table id="tableBox" style="display:none;">
+            <thead>
+                <tr>
+                    <th>鸟类名称</th>
+                    <th>作者</th>
+                    <th>分类</th>
+                    <th>拍摄地点</th>
+                    <th>时间</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
     </div>
 
     <script>
-        const ADMIN_PWD = "123456";
+        const SUPABASE_URL = "你的URL";
+        const SUPABASE_KEY = "你的KEY";
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        function getData(){
-            let d = localStorage.getItem("birdList");
-            return d ? JSON.parse(d) : [];
-        }
-        function saveData(arr){
-            localStorage.setItem("birdList",JSON.stringify(arr));
-        }
-
-        function login(){
-            let pwd = document.getElementById("pwd").value.trim();
-            if(pwd !== ADMIN_PWD){
-                alert("密码错误");
+        async function loadData(){
+            const {data} = await supabase.from("bird_work_list").select("*").order("id",{asc:false});
+            if(!data||data.length===0){
+                document.getElementById("tipText").innerText = "暂无数据";
                 return;
             }
-            document.getElementById("adminBox").classList.remove("hidden");
-            renderAdmin();
-        }
-
-        function renderAdmin(){
-            let list = getData();
-            let box = document.getElementById("adminList");
-            if(list.length === 0){
-                box.innerHTML = "<p class='text-gray'>暂无数据</p>";
-                return;
-            }
-            box.innerHTML = "";
-            list.forEach((item,index)=>{
-                const div = document.createElement("div");
-                div.className = "admin-item";
-                div.innerHTML = `
-                    <img src="${item.img}">
-                    <div class="admin-info">
-                        <div><strong>鸟类名称：</strong>${item.birdName||"未知"}</div>
-                        <div><strong>分类：</strong>${item.category}</div>
-                        <div><strong>作者：</strong>${item.name}</div>
-                        <div><strong>点位：</strong>${item.lng?item.lng+","+item.lat:"未选点"}</div>
-                        <div><strong>状态：</strong>${item.hide?"<span class='text-red'>已隐藏</span>":"<span class='text-green'>正常展示</span>"}</div>
-                    </div>
-                    <button onclick="toggleHide(${index})" class="btn-del">
-                        ${item.hide?"恢复展示":"隐藏作品"}
-                    </button>
+            document.getElementById("tipText").style.display="none";
+            document.getElementById("tableBox").style.display="table";
+            let html = "";
+            data.forEach(item=>{
+                html += `
+                <tr>
+                    <td>${item.bird_name}</td>
+                    <td>${item.username}</td>
+                    <td>${item.category}</td>
+                    <td>${item.place||"无"}</td>
+                    <td>${item.create_time}</td>
+                    <td>${item.is_hide?"已隐藏":"展示中"}</td>
+                    <td>
+                        <button class="btn btn-blue" onclick="changeStatus(${item.id},${!item.is_hide})">${item.is_hide?"显示":"隐藏"}</button>
+                    </td>
+                </tr>
                 `;
-                box.appendChild(div);
             })
+            document.getElementById("tbody").innerHTML = html;
         }
 
-        function toggleHide(index){
-            let list = getData();
-            list[index].hide = !list[index].hide;
-            saveData(list);
-            alert("操作成功");
-            renderAdmin();
+        async function changeStatus(id,status){
+            await supabase.from("bird_work_list").update({is_hide:status}).eq("id",id);
+            location.reload();
         }
+
+        window.onload = loadData;
     </script>
 </body>
 </html>
