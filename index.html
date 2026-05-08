@@ -70,20 +70,20 @@
 
 <script>
     // ==================== 请替换为您的 Supabase 配置 ====================
-    const SUPABASE_URL = 'https://ktcojqfowthntgeurwao.supabase.co';      // 👈 替换这里
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0Y29qcWZvd3RobnRnZXVyd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTIyMjMsImV4cCI6MjA5Mzc2ODIyM30.tJg0VxBr64_avM2XZdGzEdyeLEai1-swY18aAFeBTu8';                    // 👈 替换这里
+    const MY_SUPABASE_URL = 'https://ktcojqfowthntgeurwao.supabase.co';      // 👈 替换这里
+    const MY_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0Y29qcWZvd3RobnRnZXVyd2FvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxOTIyMjMsImV4cCI6MjA5Mzc2ODIyM30.tJg0VxBr64_avM2XZdGzEdyeLEai1-swY18aAFeBTu8';                    // 👈 替换这里
     // =================================================================
     
     // 全局变量
-    let supabase = null;
-    let currentUser = null;
-    let map = null;
-    let markersLayer = null;
-    let selectedLocation = { lat: 39.9042, lng: 116.4074 };
+    let _supabase = null;
+    let _currentUser = null;
+    let _map = null;
+    let _markersLayer = null;
+    let _selectedLocation = { lat: 39.9042, lng: 116.4074 };
     
     // 鸟类数据
-    const birdCategories = ["雀形目", "鸻形目", "鹰形目", "鸽形目", "䴙䴘目", "鹳形目", "雁形目", "鸮形目", "佛法僧目", "鹃形目"];
-    const birdNamesMap = {
+    const BIRD_CATEGORIES = ["雀形目", "鸻形目", "鹰形目", "鸽形目", "䴙䴘目", "鹳形目", "雁形目", "鸮形目", "佛法僧目", "鹃形目"];
+    const BIRD_NAMES_MAP = {
         "雀形目": ["麻雀", "喜鹊", "乌鸦", "黄鹂", "画眉", "山雀"],
         "鸻形目": ["海鸥", "白腰草鹬", "红脚鹬", "凤头麦鸡"],
         "鹰形目": ["苍鹰", "雀鹰", "白头海雕", "红隼"],
@@ -98,13 +98,14 @@
     
     // 初始化 Supabase
     function initSupabase() {
-        if (SUPABASE_URL.includes('your-project')) {
-            alert('⚠️ 请先配置 Supabase URL 和 anon key！\n\n在代码第110-111行替换为您项目的实际值。');
-            console.error('请配置 SUPABASE_URL 和 SUPABASE_ANON_KEY');
+        if (MY_SUPABASE_URL.includes('your-project')) {
+            const msg = '⚠️ 请先配置 Supabase URL 和 anon key！\n\n在代码第110-111行替换为您项目的实际值。';
+            alert(msg);
+            console.error(msg);
             return false;
         }
         try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            _supabase = window.supabase.createClient(MY_SUPABASE_URL, MY_SUPABASE_ANON_KEY);
             console.log('✅ Supabase 连接成功');
             return true;
         } catch(e) {
@@ -115,8 +116,8 @@
     
     // 加载观测记录
     async function loadObservations() {
-        if (!supabase) return [];
-        const { data, error } = await supabase
+        if (!_supabase) return [];
+        const { data, error } = await _supabase
             .from('bird_observations')
             .select('*')
             .order('created_at', { ascending: false });
@@ -129,29 +130,29 @@
     
     // 渲染地图标记
     async function refreshMapMarkers() {
-        if (!map) return;
+        if (!_map) return;
         const observations = await loadObservations();
-        if (markersLayer) map.removeLayer(markersLayer);
-        markersLayer = L.layerGroup().addTo(map);
+        if (_markersLayer) _map.removeLayer(_markersLayer);
+        _markersLayer = L.layerGroup().addTo(_map);
         
         observations.forEach(obs => {
             const popupHtml = `
                 <div style="min-width:160px; text-align:center;">
-                    <img src="${obs.image_url}" style="width:100%; max-height:140px; object-fit:cover; border-radius:12px; margin-bottom:8px;">
+                    <img src="${escapeHtml(obs.image_url)}" style="width:100%; max-height:140px; object-fit:cover; border-radius:12px; margin-bottom:8px;">
                     <p><strong>${escapeHtml(obs.bird_name)}</strong><br>
                     <span style="font-size:12px; color:#666;">${escapeHtml(obs.category)}</span><br>
                     📸 ${escapeHtml(obs.user_name)}<br>
                     <span style="font-size:11px;">${new Date(obs.created_at).toLocaleDateString()}</span></p>
                 </div>
             `;
-            L.marker([obs.lat, obs.lng]).bindPopup(popupHtml).addTo(markersLayer);
+            L.marker([obs.lat, obs.lng]).bindPopup(popupHtml).addTo(_markersLayer);
         });
         
         // 显示当前选中位置
-        if (window.selectedMarker) map.removeLayer(window.selectedMarker);
-        window.selectedMarker = L.circleMarker([selectedLocation.lat, selectedLocation.lng], {
+        if (window._selectedMarker) _map.removeLayer(window._selectedMarker);
+        window._selectedMarker = L.circleMarker([_selectedLocation.lat, _selectedLocation.lng], {
             radius: 10, color: "#f39c12", weight: 3, fillColor: "#f1c40f", fillOpacity: 0.7
-        }).addTo(map).bindPopup("📷 即将上传的位置").openPopup();
+        }).addTo(_map).bindPopup("📷 即将上传的位置").openPopup();
     }
     
     // 渲染缩略图
@@ -171,8 +172,8 @@
             img.className = "thumb-item";
             img.title = `${obs.bird_name} - ${obs.user_name}`;
             img.onclick = () => {
-                if (map) {
-                    map.setView([obs.lat, obs.lng], 12);
+                if (_map) {
+                    _map.setView([obs.lat, obs.lng], 12);
                 }
             };
             container.appendChild(img);
@@ -185,18 +186,18 @@
         const fileName = `${userId}_${Date.now()}.${fileExt}`;
         const filePath = `bird-images/${fileName}`;
         
-        const { error, data } = await supabase.storage
+        const { error } = await _supabase.storage
             .from('birdphotos')
             .upload(filePath, file, { cacheControl: '3600', upsert: false });
         if (error) throw error;
         
-        const { data: { publicUrl } } = supabase.storage.from('birdphotos').getPublicUrl(filePath);
+        const { data: { publicUrl } } = _supabase.storage.from('birdphotos').getPublicUrl(filePath);
         return publicUrl;
     }
     
     // 发布观测记录
     async function handleUpload() {
-        if (!currentUser) { alert("请先登录"); return; }
+        if (!_currentUser) { alert("请先登录"); return; }
         const category = document.getElementById("categorySelect")?.value;
         const birdName = document.getElementById("birdNameSelect")?.value;
         const imageFile = document.getElementById("birdImage")?.files[0];
@@ -206,20 +207,21 @@
         if (!imageFile) { alert("请上传鸟类图片"); return; }
         
         try {
-            const imageUrl = await uploadImage(imageFile, currentUser.id);
-            const { error } = await supabase.from('bird_observations').insert({
-                user_id: currentUser.id,
-                user_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || '鸟友',
+            const imageUrl = await uploadImage(imageFile, _currentUser.id);
+            const { error } = await _supabase.from('bird_observations').insert({
+                user_id: _currentUser.id,
+                user_name: _currentUser.user_metadata?.full_name || _currentUser.email?.split('@')[0] || '鸟友',
                 bird_name: birdName,
                 category: category,
                 image_url: imageUrl,
-                lat: selectedLocation.lat,
-                lng: selectedLocation.lng
+                lat: _selectedLocation.lat,
+                lng: _selectedLocation.lng
             });
             if (error) throw error;
             alert("发布成功！数据已同步到云端 ☁️");
             document.getElementById("birdImage").value = "";
-            document.getElementById("imagePreview").style.display = "none";
+            const preview = document.getElementById("imagePreview");
+            if (preview) preview.style.display = "none";
             document.getElementById("categorySelect").value = "";
             document.getElementById("birdNameSelect").innerHTML = '<option value="">——请先选择分类——</option>';
             await refreshMapMarkers();
@@ -233,11 +235,12 @@
     // 渲染上传表单
     function renderUploadForm() {
         const container = document.getElementById("uploadForm");
-        if (!currentUser) {
+        if (!container) return;
+        if (!_currentUser) {
             container.innerHTML = `<div class="login-hint"><i class="fas fa-lock"></i> 请先登录，即可上传鸟类照片并标记位置<br><small>☁️ 数据永久保存在云端</small></div>`;
             return;
         }
-        let catOptions = birdCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+        let catOptions = BIRD_CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
         container.innerHTML = `
             <div class="form-group">
                 <label><i class="fas fa-tree"></i> 所属分类</label>
@@ -253,7 +256,7 @@
                 <img id="imagePreview" class="image-preview">
             </div>
             <div class="location-hint" id="locationHint">
-                📍 当前选中点: ${selectedLocation.lat.toFixed(5)} , ${selectedLocation.lng.toFixed(5)}<br>
+                📍 当前选中点: ${_selectedLocation.lat.toFixed(5)} , ${_selectedLocation.lng.toFixed(5)}<br>
                 🗺️ 点击地图任意位置改变坐标
             </div>
             <button id="submitBtn" class="submit-btn"><i class="fas fa-upload"></i> 发布观测记录</button>
@@ -261,49 +264,64 @@
         
         const categorySelect = document.getElementById("categorySelect");
         const birdNameSelect = document.getElementById("birdNameSelect");
-        categorySelect?.addEventListener("change", (e) => {
-            const cat = e.target.value;
-            if (!cat) { birdNameSelect.innerHTML = '<option value="">——请先选择分类——</option>'; return; }
-            const birds = birdNamesMap[cat] || ["未知鸟类"];
-            birdNameSelect.innerHTML = '<option value="">请选择鸟种</option>' + birds.map(b => `<option value="${b}">${b}</option>`).join('');
-        });
+        if (categorySelect) {
+            categorySelect.addEventListener("change", (e) => {
+                const cat = e.target.value;
+                if (!cat) { birdNameSelect.innerHTML = '<option value="">——请先选择分类——</option>'; return; }
+                const birds = BIRD_NAMES_MAP[cat] || ["未知鸟类"];
+                birdNameSelect.innerHTML = '<option value="">请选择鸟种</option>' + birds.map(b => `<option value="${b}">${b}</option>`).join('');
+            });
+        }
         
-        document.getElementById("birdImage")?.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith("image/")) {
-                const reader = new FileReader();
-                reader.onload = (ev) => { const preview = document.getElementById("imagePreview"); preview.src = ev.target.result; preview.style.display = "block"; };
-                reader.readAsDataURL(file);
-            }
-        });
+        const imageInput = document.getElementById("birdImage");
+        if (imageInput) {
+            imageInput.addEventListener("change", (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith("image/")) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => { 
+                        const preview = document.getElementById("imagePreview"); 
+                        if (preview) {
+                            preview.src = ev.target.result; 
+                            preview.style.display = "block"; 
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
         
-        document.getElementById("submitBtn")?.addEventListener("click", handleUpload);
+        const submitBtn = document.getElementById("submitBtn");
+        if (submitBtn) submitBtn.addEventListener("click", handleUpload);
     }
     
     function updateLocationHint() {
         const hint = document.getElementById("locationHint");
-        if (hint && currentUser) {
-            hint.innerHTML = `📍 当前选中点: ${selectedLocation.lat.toFixed(5)} , ${selectedLocation.lng.toFixed(5)}<br>🗺️ 点击地图任意位置改变坐标`;
+        if (hint && _currentUser) {
+            hint.innerHTML = `📍 当前选中点: ${_selectedLocation.lat.toFixed(5)} , ${_selectedLocation.lng.toFixed(5)}<br>🗺️ 点击地图任意位置改变坐标`;
         }
     }
     
     // 渲染登录区域
     function renderAuthArea() {
         const authArea = document.getElementById("authArea");
-        if (!currentUser) {
+        if (!authArea) return;
+        if (!_currentUser) {
             authArea.innerHTML = `
                 <input type="email" id="loginEmail" placeholder="邮箱" style="width:140px">
                 <input type="password" id="loginPwd" placeholder="密码" style="width:100px">
                 <button id="loginBtn"><i class="fas fa-sign-in-alt"></i> 登录/注册</button>
             `;
-            document.getElementById("loginBtn")?.addEventListener("click", handleLogin);
+            const loginBtn = document.getElementById("loginBtn");
+            if (loginBtn) loginBtn.addEventListener("click", handleLogin);
         } else {
-            const displayName = currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || currentUser.id;
+            const displayName = _currentUser.user_metadata?.full_name || _currentUser.email?.split('@')[0] || _currentUser.id;
             authArea.innerHTML = `
                 <span><i class="fas fa-user"></i> ${escapeHtml(displayName)}</span>
                 <button id="logoutBtn" class="logout-btn"><i class="fas fa-sign-out-alt"></i> 登出</button>
             `;
-            document.getElementById("logoutBtn")?.addEventListener("click", handleLogout);
+            const logoutBtn = document.getElementById("logoutBtn");
+            if (logoutBtn) logoutBtn.addEventListener("click", handleLogout);
         }
     }
     
@@ -312,18 +330,18 @@
         const password = document.getElementById("loginPwd")?.value.trim();
         if (!email || !password) { alert("请输入邮箱和密码"); return; }
         try {
-            let { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            let { data, error } = await _supabase.auth.signInWithPassword({ email, password });
             if (error) {
                 if (error.message.includes('Invalid login')) {
-                    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+                    const { data: signUpData, error: signUpError } = await _supabase.auth.signUp({ email, password });
                     if (signUpError) throw signUpError;
                     alert("注册成功！请查收邮箱确认邮件，然后登录。");
                     return;
                 }
                 throw error;
             }
-            currentUser = data.user;
-            sessionStorage.setItem("bird_current_user", JSON.stringify({ id: currentUser.id, email: currentUser.email }));
+            _currentUser = data.user;
+            sessionStorage.setItem("bird_current_user", JSON.stringify({ id: _currentUser.id, email: _currentUser.email }));
             alert("登录成功！");
             renderAuthArea();
             renderUploadForm();
@@ -335,8 +353,8 @@
     }
     
     async function handleLogout() {
-        await supabase.auth.signOut();
-        currentUser = null;
+        await _supabase.auth.signOut();
+        _currentUser = null;
         sessionStorage.removeItem("bird_current_user");
         renderAuthArea();
         renderUploadForm();
@@ -344,10 +362,11 @@
     }
     
     async function checkAuth() {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) currentUser = session.user;
-        supabase.auth.onAuthStateChange((_event, session) => {
-            currentUser = session?.user || null;
+        if (!_supabase) return;
+        const { data: { session } } = await _supabase.auth.getSession();
+        if (session) _currentUser = session.user;
+        _supabase.auth.onAuthStateChange((_event, session) => {
+            _currentUser = session?.user || null;
             renderAuthArea();
             renderUploadForm();
             refreshMapMarkers();
@@ -359,19 +378,19 @@
     
     // 初始化地图
     function initMap() {
-        map = L.map('map').setView([35.0, 108.0], 5);
+        _map = L.map('map').setView([35.0, 108.0], 5);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors'
-        }).addTo(map);
+        }).addTo(_map);
         
-        map.on('click', (e) => {
-            selectedLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
+        _map.on('click', (e) => {
+            _selectedLocation = { lat: e.latlng.lat, lng: e.latlng.lng };
             updateLocationHint();
             refreshMapMarkers();
-            if (!currentUser) alert("已选中坐标，登录后即可在此上传");
+            if (!_currentUser) alert("已选中坐标，登录后即可在此上传");
         });
         
-        markersLayer = L.layerGroup().addTo(map);
+        _markersLayer = L.layerGroup().addTo(_map);
         refreshMapMarkers();
     }
     
